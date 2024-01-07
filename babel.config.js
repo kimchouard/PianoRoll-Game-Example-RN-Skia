@@ -5,6 +5,8 @@ module.exports = function (api) {
     plugins: [
       // Required for expo-router
       'expo-router/babel',
+      // KEEP THIS ONE LAST
+      'react-native-reanimated/plugin',
     ],
   };
 };

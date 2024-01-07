@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "pianoroll-game-example-rn-skia",
-    "slug": "pianoroll-game-example-rn-skia",
+    "name": "PlayingUI",
+    "slug": "PlayingUI",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -16,7 +16,8 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kimik.PlayingUI"
     },
     "android": {
       "adaptiveIcon": {
