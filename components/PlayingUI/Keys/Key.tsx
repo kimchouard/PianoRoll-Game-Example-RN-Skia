@@ -45,7 +45,7 @@ const Key = ({
     // If the fonts are loaded
     if (keyMainNoteFont) {
       let y = notePosition.y + dotRadius / 4;
-      let x = notePosition.x - dotRadius / 3;
+      let x = notePosition.x - dotRadius / 4;
 
       return <Text
           x={ x }

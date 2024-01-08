@@ -4,6 +4,7 @@ import {
   Path,
   Skia,
   SkFont,
+  Text,
 } from '@shopify/react-native-skia';
 import { memo } from 'react';
 
@@ -13,11 +14,14 @@ import { Dimensions } from 'react-native';
 import {
   playingUIMaxHeight,
   getMainLinePosition,
+  displayKeyRadius,
+  keyPressedCircleRadius,
 } from '../../utils/utils';
 import gameColors from '../../utils/styleColors';
 
 import Key from './Key';
 import NoteBG from './NoteBG';
+import { RenderingMethod } from '../../PlayingUI';
 
 // ===============
 //    MAIN COMPONENT
@@ -31,13 +35,15 @@ export const KeyGroup = ({
   noteXWidth,
   numberOfMainLinesPressed,
   keyMainNoteFont,
+  renderingMethod,
 }: {
   noteName: string,
   noteColor: string,
-  noteXPosition: number;
-  noteXWidth: number;
+  noteXPosition: number,
+  noteXWidth: number,
   numberOfMainLinesPressed: number,
   keyMainNoteFont?: SkFont,
+  renderingMethod: RenderingMethod,
 }) => {
   // From REDUX store
   const canvasDimensions = {
@@ -81,6 +87,97 @@ export const KeyGroup = ({
   //        RENDER Utils
   // ===========================
 
+  const createNoteBGRRect = (x:number, y:number, pathSize: number) => {
+    return Skia.RRectXY(
+      Skia.XYWHRect(
+        x, // x
+        y - pathSize / 2, // y
+        noteXWidth + pathSize / 2, // width
+        pathSize, // height
+      ),
+      pathSize / 2, pathSize / 2 // radius (rx, ry)
+    )
+  }
+
+  const renderKeyGroupPaths = () => {
+    let firstKeyYPosition:number;
+    let lastKeyYPosition:number;
+    
+    const circlesPath = Skia.Path.Make();
+    const noteBGPath = Skia.Path.Make();
+    const noteBGLinePath = Skia.Path.Make();
+
+    let noteText:React.JSX.Element;
+
+    for (let mainLineNumber = 0; mainLineNumber < numberOfMainLinesPressed; mainLineNumber++) {
+      // Get its Y position
+      const mainDotY = getMainLinePosition(mainLineNumber, canvasDimensions, 'saxOdisei');
+
+      // and it's the first one (firstKeyYPosition not defined yet), then we store it's position as the top one.
+      if (firstKeyYPosition === undefined) { firstKeyYPosition = mainDotY; }
+      // Set the Y lowest position too, in case it's the last one that does :)
+      lastKeyYPosition = mainDotY;
+
+      const shouldRenderNoteName = (mainLineNumber === (numberOfMainLinesPressed - 1));
+
+      const dotRadius = (shouldRenderNoteName === true) ? displayKeyRadius : keyPressedCircleRadius;
+      
+      circlesPath.addCircle(noteXPosition, mainDotY, dotRadius);
+
+
+      const noteBGx = noteXPosition - displayKeyRadius / 2;
+
+      noteBGPath.addRRect(createNoteBGRRect(noteBGx, mainDotY, displayKeyRadius));
+      noteBGLinePath.addRRect(createNoteBGRRect(noteBGx, mainDotY, 2));
+
+      if (shouldRenderNoteName) {
+        noteText = <Text
+          x={ noteXPosition - dotRadius / 4 }
+          y={ mainDotY + dotRadius / 4 }
+          text={ noteName }
+          color={ '#FFFFFF' }
+          font={ keyMainNoteFont }
+        />;
+      }
+    }
+
+    // circlesPath.close();
+
+    let connectingLine;
+    if (firstKeyYPosition < lastKeyYPosition) {
+      connectingLine = renderConnectingLine(firstKeyYPosition, lastKeyYPosition);
+    }
+
+    return <Group key={ `${noteName}_KeyGroup` }>
+      <Path
+        path={ noteBGPath }
+        color={ gameColors.noteBgBaseHex }
+        style="fill"
+        strokeJoin="round"
+        opacity={0.82}
+      />
+
+      <Path
+        path={ noteBGLinePath }
+        color={ gameColors.lineBaseHex }
+        style="fill"
+        strokeJoin="round"
+        opacity={0.82}
+      />
+
+      { connectingLine }
+
+      <Path
+        path={ circlesPath }
+        color={ gameColors.noteBaseHex }
+        style="fill"
+        strokeJoin="round"
+      />
+
+      { noteText }
+    </Group>;
+  }
+
   const renderKeyGroup = () => {
     let firstKeyYPosition:number;
     let lastKeyYPosition:number;
@@ -88,7 +185,7 @@ export const KeyGroup = ({
     // Storing the noteBGs JSX values to be able to paint behind the connecting line while the dots stays on top
     const noteBGJSXs:React.JSX.Element[] = [];
 
-    // ITERATE over the keys that needs to be pressed
+    // // ITERATE over the keys that needs to be pressed
     const allKeyJsx = <Group key={`${noteName}_allKeys`}>
       { Array.from(Array(numberOfMainLinesPressed), (_, mainLineNumber) => {
         let mainKeyCircles;
@@ -147,7 +244,7 @@ export const KeyGroup = ({
   //        RENDER Main
   // ===========================
 
-  return renderKeyGroup();
+  return (renderingMethod === 'path') ? renderKeyGroupPaths() : renderKeyGroup();
 };
 
 export default memo(KeyGroup);

@@ -42,7 +42,7 @@ const NoteBG = ({
 
   // Reanimated calculated values
   const bgX = notePosition.x - displayKeyRadius / 2;
-  const bgWidth = noteXWidth + displayKeyRadius;
+  const bgWidth = noteXWidth + displayKeyRadius / 2;
   const lineWidth = noteXWidth + bgLinePathSize;
   const extraLineWidth = noteXWidth;
 
@@ -65,7 +65,7 @@ const NoteBG = ({
 
     const rectBGParams = {
       x,
-      y: notePosition.y -pathSize / 2,
+      y: notePosition.y - pathSize / 2,
       height: pathSize,
       width,
       r: pathSize / 2,

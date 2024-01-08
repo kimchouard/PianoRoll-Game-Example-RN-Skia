@@ -8,6 +8,8 @@ import { Easing, useDerivedValue, useSharedValue, withSpring, withTiming } from 
 import Timeline from "./PlayingUI/Lines/Timeline";
 import Notes from "./PlayingUI/Notes";
 
+export type RenderingMethod = 'path' | 'shapes';
+
 export const BPM = 60; // BPM is a const for the sake of this example
 
 const totalBarCount = 50;
@@ -16,6 +18,7 @@ export const keyMainNoteFontSize = 15;
 const PlayingUI = () => {
   const {height, width} = useWindowDimensions();
   const [isPlaying, setIsPlaying] = useState(false);
+  const [renderingMethod, setRenderingMethod] = useState<RenderingMethod>('path');
 
   const keyMainNoteFont = useFont(((Platform.OS === 'web') ? '/fonts/Lato-Regular.ttf' : require('../public/fonts/Lato-Regular.ttf')), keyMainNoteFontSize);
 
@@ -46,11 +49,11 @@ const PlayingUI = () => {
   }, [isPlaying]);
 
   const renderPlayPauseButton = () => <View style={styles.actionWrapper}>
-    <Pressable
-      style={styles.actionButton}
-      onPress={() => setIsPlaying(!isPlaying)}
-    >
+    <Pressable style={styles.actionButton} onPress={() => setIsPlaying(!isPlaying)}>
       <Text style={styles.actionButtonText}>{ (isPlaying) ? 'Stop' : 'Play' }</Text>
+    </Pressable>
+    <Pressable style={[styles.actionButton, styles.actionButtonOutline]} onPress={() => setRenderingMethod((renderingMethod === 'path') ? 'shapes' : 'path')}>
+      <Text style={[styles.actionButtonText, styles.actionButtonTextOutline]}>{ (renderingMethod === 'path') ? 'Render with Shapes (web = 🐌)' : 'Render with Paths (web = 🚀)' }</Text>
     </Pressable>
   </View>;
   
@@ -62,7 +65,7 @@ const PlayingUI = () => {
           <HorizontalLines />
           
           <Group transform={baseXTranslateWithTimelineFromAnimation}>
-            <Notes keyMainNoteFont={keyMainNoteFont} />
+            <Notes keyMainNoteFont={keyMainNoteFont} renderingMethod={renderingMethod} />
           </Group>
           
           <Timeline />
@@ -95,16 +98,27 @@ const styles = StyleSheet.create({
     bottom: 20,
     left: 20,
     zIndex: 1,
+    display: 'flex',
+    flexDirection: 'row',
   },
   actionButton: {
     backgroundColor: appColors.odiseiGreen,
     paddingVertical: 10,
     paddingHorizontal: 20,
+    marginHorizontal: 10,
     borderRadius: 10,
+  },
+  actionButtonOutline: {
+    backgroundColor: 'transparent',
+    // borderWidth: 2,
+    // borderColor: appColors.odiseiGreen,
   },
   actionButtonText: {
     color: '#FFFFFF',
     fontSize: 20,
+  },
+  actionButtonTextOutline: {
+    color: appColors.odiseiGreen,
   },
 });
  
