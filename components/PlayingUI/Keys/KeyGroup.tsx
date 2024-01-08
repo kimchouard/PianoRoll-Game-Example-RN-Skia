@@ -8,7 +8,6 @@ import {
 } from '@shopify/react-native-skia';
 import { memo, useMemo } from 'react';
 
-import { SharedValue } from 'react-native-reanimated';
 import { Dimensions } from 'react-native';
 // Load global consts, styles and images
 import {
@@ -74,10 +73,12 @@ export const KeyGroup = ({
     const connectingLine = Skia.Path.Make();
     let keyCircles;
     let noteBGs;
+    let noteName;
 
     if (renderingMethod === 'path') {
       keyCircles = Skia.Path.Make();
       noteBGs = Skia.Path.Make();
+      noteName = Skia.Path.Make();
     }
 
     for (let mainLineNumber = 0; mainLineNumber < numberOfMainLinesPressed; mainLineNumber++) {
@@ -113,9 +114,12 @@ export const KeyGroup = ({
       // connectingLine.close(); => just a line, not a closed path
     }
 
-
     if (renderingMethod === 'path'
-    && keyCircles !== undefined && noteBGs !== undefined) {
+    && keyCircles !== undefined && noteBGs !== undefined && noteName !== undefined) {
+      // Usefull performance-wise or not ?
+      keyCircles.simplify();
+      noteBGs.simplify();
+
       keyCircles.close();
       noteBGs.close();
     }
