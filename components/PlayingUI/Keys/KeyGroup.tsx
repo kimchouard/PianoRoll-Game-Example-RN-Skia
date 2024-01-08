@@ -6,7 +6,7 @@ import {
   SkFont,
   Text,
 } from '@shopify/react-native-skia';
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 
 import { SharedValue } from 'react-native-reanimated';
 import { Dimensions } from 'react-native';
@@ -51,42 +51,6 @@ export const KeyGroup = ({
     width: Dimensions.get('window').width,
   };
 
-  // ===============
-  //    Utils
-  // ===============
-
-  // Render the connecting line between keys
-  const renderConnectingLine = (firstKeyYPosition:number, lastKeyYPosition:number) => {
-    if (firstKeyYPosition !== undefined && lastKeyYPosition !== undefined
-      && firstKeyYPosition !== null && lastKeyYPosition !== null) {
-      const connectingLineWidth = 2;
-      const connectingLineOpacity = 0.5;
-      const connectingLineColor = gameColors.noteBaseHex;
-
-      // ========== MAIN LINE ============
-      const barLinePath = Skia.Path.Make();
-      barLinePath.moveTo(noteXPosition, firstKeyYPosition);
-      barLinePath.lineTo(noteXPosition, lastKeyYPosition);
-      barLinePath.close();
-
-      // ========== MAIN RENDER ============
-      return <Group>
-        <Path
-          path={ barLinePath }
-          color={ connectingLineColor }
-          style="stroke"
-          strokeJoin="round"
-          strokeWidth={connectingLineWidth}
-          opacity={connectingLineOpacity}
-        />
-      </Group>;
-    }
-  };
-
-  // ===========================
-  //        RENDER Utils
-  // ===========================
-
   const createNoteBGRRect = (x:number, y:number, pathSize: number) => {
     return Skia.RRectXY(
       Skia.XYWHRect(
@@ -99,15 +63,24 @@ export const KeyGroup = ({
     )
   }
 
-  const renderKeyGroupPaths = () => {
+  // ===========================
+  //     Creating Paths
+  // ===========================
+
+  const paths = useMemo(() => {
     let firstKeyYPosition:number;
     let lastKeyYPosition:number;
-    
-    const circlesPath = Skia.Path.Make();
-    const noteBGPath = Skia.Path.Make();
-    const noteBGLinePath = Skia.Path.Make();
 
-    let noteText:React.JSX.Element;
+    const connectingLine = Skia.Path.Make();
+    let keyCircles;
+    let noteBGs;
+    let noteBGLines;
+
+    if (renderingMethod === 'path') {
+      keyCircles = Skia.Path.Make();
+      noteBGs = Skia.Path.Make();
+      noteBGLines = Skia.Path.Make();
+    }
 
     for (let mainLineNumber = 0; mainLineNumber < numberOfMainLinesPressed; mainLineNumber++) {
       // Get its Y position
@@ -118,67 +91,117 @@ export const KeyGroup = ({
       // Set the Y lowest position too, in case it's the last one that does :)
       lastKeyYPosition = mainDotY;
 
-      const shouldRenderNoteName = (mainLineNumber === (numberOfMainLinesPressed - 1));
+      if (renderingMethod === 'path'
+      && keyCircles !== undefined && noteBGs !== undefined && noteBGLines !== undefined) {
+        const shouldRenderNoteName = (mainLineNumber === (numberOfMainLinesPressed - 1));
 
-      const dotRadius = (shouldRenderNoteName === true) ? displayKeyRadius : keyPressedCircleRadius;
-      
-      circlesPath.addCircle(noteXPosition, mainDotY, dotRadius);
+        const dotRadius = (shouldRenderNoteName === true) ? displayKeyRadius : keyPressedCircleRadius;
+        
+        keyCircles.addCircle(noteXPosition, mainDotY, dotRadius);
 
 
-      const noteBGx = noteXPosition - displayKeyRadius / 2;
+        const noteBGx = noteXPosition - displayKeyRadius / 2;
 
-      noteBGPath.addRRect(createNoteBGRRect(noteBGx, mainDotY, displayKeyRadius));
-      noteBGLinePath.addRRect(createNoteBGRRect(noteBGx, mainDotY, 2));
-
-      if (shouldRenderNoteName) {
-        noteText = <Text
-          x={ noteXPosition - dotRadius / 4 }
-          y={ mainDotY + dotRadius / 4 }
-          text={ noteName }
-          color={ '#FFFFFF' }
-          font={ keyMainNoteFont }
-        />;
+        noteBGs.addRRect(createNoteBGRRect(noteBGx, mainDotY, displayKeyRadius));
+        noteBGLines.addRRect(createNoteBGRRect(noteBGx, mainDotY, 2));
       }
     }
 
-    // circlesPath.close();
 
-    let connectingLine;
-    if (firstKeyYPosition < lastKeyYPosition) {
-      connectingLine = renderConnectingLine(firstKeyYPosition, lastKeyYPosition);
+    if (firstKeyYPosition < lastKeyYPosition
+    && firstKeyYPosition !== undefined && firstKeyYPosition !== null
+    && lastKeyYPosition !== undefined && lastKeyYPosition !== null) {
+
+      // ========== MAIN LINE ============
+      connectingLine.moveTo(noteXPosition, firstKeyYPosition);
+      connectingLine.lineTo(noteXPosition, lastKeyYPosition);
+      // connectingLine.close(); => just a line, not a closed path
     }
 
-    return <Group key={ `${noteName}_KeyGroup` }>
+
+    if (renderingMethod === 'path'
+    && keyCircles !== undefined && noteBGs !== undefined && noteBGLines !== undefined) {
+      keyCircles.close();
+      noteBGs.close();
+      noteBGLines.close();
+    }
+
+    return {
+      connectingLine,
+      keyCircles,
+      noteBGs,
+      noteBGLines,
+    };
+  }, [renderingMethod]); // add Note ID to the deps array
+
+  // ===============
+  //    Utils
+  // ===============
+
+  // Render the connecting line between keys
+  const renderConnectingLine = () => {
+    const connectingLineWidth = 2;
+    const connectingLineOpacity = 0.5;
+    const connectingLineColor = gameColors.noteBaseHex;
+
+    // ========== MAIN RENDER ============
+
+    return paths && paths.connectingLine && (
       <Path
-        path={ noteBGPath }
-        color={ gameColors.noteBgBaseHex }
-        style="fill"
+        path={ paths.connectingLine }
+        color={ connectingLineColor }
+        style="stroke"
         strokeJoin="round"
-        opacity={0.82}
+        strokeWidth={connectingLineWidth}
+        opacity={connectingLineOpacity}
       />
+    );
+  };
 
-      <Path
-        path={ noteBGLinePath }
-        color={ gameColors.lineBaseHex }
-        style="fill"
-        strokeJoin="round"
-        opacity={0.82}
-      />
+  // ===========================
+  //        RENDER Utils
+  // ===========================
 
-      { connectingLine }
+  const renderKeyGroupPaths = () => {
+    return paths && paths.keyCircles && paths.noteBGs && paths.noteBGLines && (
+      <Group key={ `${noteName}_KeyGroup` }>
+        <Path
+          path={ paths.noteBGs }
+          color={ gameColors.noteBgBaseHex }
+          style="fill"
+          strokeJoin="round"
+          opacity={0.82}
+        />
 
-      <Path
-        path={ circlesPath }
-        color={ gameColors.noteBaseHex }
-        style="fill"
-        strokeJoin="round"
-      />
+        <Path
+          path={ paths.noteBGLines }
+          color={ gameColors.lineBaseHex }
+          style="fill"
+          strokeJoin="round"
+          opacity={0.82}
+        />
 
-      { noteText }
-    </Group>;
+        { renderConnectingLine() }
+
+        <Path
+          path={ paths.keyCircles }
+          color={ gameColors.noteBaseHex }
+          style="fill"
+          strokeJoin="round"
+        />
+
+        <Text
+          x={ noteXPosition - displayKeyRadius / 4 }
+          y={ getMainLinePosition((numberOfMainLinesPressed - 1), canvasDimensions, 'saxOdisei') + displayKeyRadius / 4 }
+          text={ noteName }
+          color={ '#FFFFFF' }
+          font={ keyMainNoteFont }
+        />
+      </Group>
+    );
   }
 
-  const renderKeyGroup = () => {
+  const renderKeyGroupShapes = () => {
     let firstKeyYPosition:number;
     let lastKeyYPosition:number;
 
@@ -188,9 +211,6 @@ export const KeyGroup = ({
     // // ITERATE over the keys that needs to be pressed
     const allKeyJsx = <Group key={`${noteName}_allKeys`}>
       { Array.from(Array(numberOfMainLinesPressed), (_, mainLineNumber) => {
-        let mainKeyCircles;
-        let mainKeyBackground;
-
         // Get its Y position
         const mainDotY = getMainLinePosition(mainLineNumber, canvasDimensions, 'saxOdisei');
 
@@ -199,14 +219,16 @@ export const KeyGroup = ({
         // Set the Y lowest position too, in case it's the last one that does :)
         lastKeyYPosition = mainDotY;
 
-        noteBGJSXs.push((<NoteBG
-          key={ `${noteName}_keyBG_${mainLineNumber}` }
-          notePosition={ {
-            x: noteXPosition,
-            y: mainDotY,
-          } }
-          noteXWidth={noteXWidth}
-        />))
+        noteBGJSXs.push((
+          <NoteBG
+            key={ `${noteName}_keyBG_${mainLineNumber}` }
+            notePosition={ {
+              x: noteXPosition,
+              y: mainDotY,
+            } }
+            noteXWidth={noteXWidth}
+          />
+        ))
 
         return <Group key={ `${noteName}_keyCircle_${mainLineNumber}` }>
           <Key
@@ -244,7 +266,7 @@ export const KeyGroup = ({
   //        RENDER Main
   // ===========================
 
-  return (renderingMethod === 'path') ? renderKeyGroupPaths() : renderKeyGroup();
+  return (renderingMethod === 'path') ? renderKeyGroupPaths() : renderKeyGroupShapes();
 };
 
 export default memo(KeyGroup);
