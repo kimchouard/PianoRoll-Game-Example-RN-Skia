@@ -74,12 +74,10 @@ export const KeyGroup = ({
     const connectingLine = Skia.Path.Make();
     let keyCircles;
     let noteBGs;
-    let noteBGLines;
 
     if (renderingMethod === 'path') {
       keyCircles = Skia.Path.Make();
       noteBGs = Skia.Path.Make();
-      noteBGLines = Skia.Path.Make();
     }
 
     for (let mainLineNumber = 0; mainLineNumber < numberOfMainLinesPressed; mainLineNumber++) {
@@ -92,18 +90,15 @@ export const KeyGroup = ({
       lastKeyYPosition = mainDotY;
 
       if (renderingMethod === 'path'
-      && keyCircles !== undefined && noteBGs !== undefined && noteBGLines !== undefined) {
+      && keyCircles !== undefined && noteBGs !== undefined) {
         const shouldRenderNoteName = (mainLineNumber === (numberOfMainLinesPressed - 1));
 
         const dotRadius = (shouldRenderNoteName === true) ? displayKeyRadius : keyPressedCircleRadius;
-        
         keyCircles.addCircle(noteXPosition, mainDotY, dotRadius);
 
 
         const noteBGx = noteXPosition - displayKeyRadius / 2;
-
         noteBGs.addRRect(createNoteBGRRect(noteBGx, mainDotY, displayKeyRadius));
-        noteBGLines.addRRect(createNoteBGRRect(noteBGx, mainDotY, 2));
       }
     }
 
@@ -120,17 +115,30 @@ export const KeyGroup = ({
 
 
     if (renderingMethod === 'path'
-    && keyCircles !== undefined && noteBGs !== undefined && noteBGLines !== undefined) {
+    && keyCircles !== undefined && noteBGs !== undefined) {
       keyCircles.close();
       noteBGs.close();
-      noteBGLines.close();
     }
+
+    // Volatile => USEFUL for performance OR NOT ?
+    /** 
+    * Specifies whether Path is volatile; whether it will be altered or discarded
+    * by the caller after it is drawn. Path by default have volatile set false.
+    *
+    * Mark animating or temporary paths as volatile to improve performance.
+    * Mark unchanging Path non-volatile to improve repeated rendering.
+    */
+    // connectingLine.setIsVolatile(true);
+    // if (renderingMethod === 'path'
+    // && keyCircles !== undefined && noteBGs !== undefined && noteBGLines !== undefined) {
+    //   keyCircles.setIsVolatile(true);
+    //   noteBGs.setIsVolatile(true);
+    // }
 
     return {
       connectingLine,
       keyCircles,
       noteBGs,
-      noteBGLines,
     };
   }, [renderingMethod]); // add Note ID to the deps array
 
@@ -163,19 +171,11 @@ export const KeyGroup = ({
   // ===========================
 
   const renderKeyGroupPaths = () => {
-    return paths && paths.keyCircles && paths.noteBGs && paths.noteBGLines && (
+    return paths && paths.keyCircles && paths.noteBGs && (
       <Group key={ `${noteName}_KeyGroup` }>
         <Path
           path={ paths.noteBGs }
           color={ gameColors.noteBgBaseHex }
-          style="fill"
-          strokeJoin="round"
-          opacity={0.82}
-        />
-
-        <Path
-          path={ paths.noteBGLines }
-          color={ gameColors.lineBaseHex }
           style="fill"
           strokeJoin="round"
           opacity={0.82}

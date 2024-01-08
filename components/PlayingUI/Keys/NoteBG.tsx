@@ -86,7 +86,7 @@ const NoteBG = ({
     {/* Render the thicker background */}
     { renderNoteBackgroundJsx('bg') }
     {/* Render the line only for non dynamicBg */}
-    { renderNoteBackgroundJsx('line') }
+    {/* { renderNoteBackgroundJsx('line') } */}
   </Group>;
 
   // ===========================
