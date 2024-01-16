@@ -10,7 +10,7 @@ const Timeline = () => {
 
   // Main timeline
   const timeLinePath = () => {
-    const timelineHeight = (width > playingUIMaxHeight) ? playingUIMaxHeight : width;
+    const timelineHeight = height;
 
     const timelinePathXPosition = timelineXPosition;
     timelinePath.moveTo(timelinePathXPosition, 0);

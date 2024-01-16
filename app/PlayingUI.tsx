@@ -10,7 +10,7 @@ if (Platform.OS !== 'web') {
 export default function TabOneScreen() {
   return (
     <View style={styles.container}>
-      <WithSkia interfaceType='index' />
+      <WithSkia interfaceType='PlayingUI' />
     </View>
   );
 }

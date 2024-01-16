@@ -18,7 +18,7 @@ export const keyMainNoteFontSize = 15;
 const PlayingUI = () => {
   const {height, width} = useWindowDimensions();
   const [isPlaying, setIsPlaying] = useState(false);
-  const [renderingMethod, setRenderingMethod] = useState<RenderingMethod>('path');
+  const [renderingMethod, setRenderingMethod] = useState<RenderingMethod>('shapes');
 
   const keyMainNoteFont = useFont(((Platform.OS === 'web') ? '/fonts/Lato-Regular.ttf' : require('../public/fonts/Lato-Regular.ttf')), keyMainNoteFontSize);
 
