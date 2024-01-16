@@ -61,26 +61,20 @@ const LaggyShapesTranslation = () => {
       <Text style={{ color: '#454545', fontSize: 20 }}>{(usePathOptimization) ? 'Use Shapes' : 'Use Paths'}</Text>
     </Pressable>
   </View>;
-
+  
   // =======================
   //      SKIA RENDERING
   // =======================
 
   // Render the circles with using <Circle /> shapes
   const renderCirclesWithShapes = () => Array.from(Array(numberOfCircleRows), (_, rowNumber) => {
-    return Array.from(Array(numberOfCirclesPerRow), (_, lineNumber) => {
-      const noteXPosition = spaceBetweenCirclesRows * rowNumber;
-      const shapeYPosition = (lineNumber + 1/2) * height / numberOfCirclesPerRow;
-
-      return <Group key={ `${rowNumber}_${lineNumber}_keyCircle` }>
-        <Circle
-          cx={ noteXPosition }
-          cy={ shapeYPosition }
-          r={ circlesDiameter }
-          color={ '#1877AD' }
-        />
-      </Group>;
-    })
+    return Array.from(Array(numberOfCirclesPerRow), (_, lineNumber) => (<Circle
+      key={ `${rowNumber}_${lineNumber}_keyCircle` }
+      cx={ spaceBetweenCirclesRows * rowNumber }
+      cy={ (lineNumber + 1/2) * height / numberOfCirclesPerRow }
+      r={ circlesDiameter }
+      color={ '#1877AD' }
+    />))
   });
   
   // Use Skia.Path to render the circles
