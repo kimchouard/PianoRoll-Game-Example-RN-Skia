@@ -114,15 +114,15 @@ export const KeyGroup = ({
       // connectingLine.close(); => just a line, not a closed path
     }
 
-    if (renderingMethod === 'path'
-    && keyCircles !== undefined && noteBGs !== undefined && noteName !== undefined) {
-      // Usefull performance-wise or not ?
-      keyCircles.simplify();
-      noteBGs.simplify();
+    // Usefull performance-wise or not ?
+    // if (renderingMethod === 'path'
+    // && keyCircles !== undefined && noteBGs !== undefined && noteName !== undefined) {
+    //   keyCircles.simplify();
+    //   noteBGs.simplify();
 
-      keyCircles.close();
-      noteBGs.close();
-    }
+    //   keyCircles.close();
+    //   noteBGs.close();
+    // }
 
     // Volatile => USEFUL for performance OR NOT ?
     /** 
