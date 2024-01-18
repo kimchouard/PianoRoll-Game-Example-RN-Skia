@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Canvas, Circle, Group, Path, Skia, } from "@shopify/react-native-skia";
+import { Canvas, Circle, Group, Path, Points, RoundedRect, Skia, vec, } from "@shopify/react-native-skia";
 import { Pressable, Text, View, useWindowDimensions } from "react-native";
 import { Easing, useDerivedValue, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 // DRAWING CONSTS
 const circlesDiameter = 18;
@@ -11,6 +12,7 @@ const spaceBetweenCirclesRows = circlesDiameter * 2.5;
 const LaggyShapesTranslation = () => {
   const numberOfCirclesPerRow = 10; // number of circles vertically
   const [numberOfCircleRows, setNumberOfCircleRows] = useState(100); // number of rows to draw
+  const [shapeType, setShapeType] = useState<'circle' | 'rrect' | 'mixed'>('circle'); // number of rows to draw
   const [usePathOptimization, setUsePathOptimization] = useState<true | false>(false); // number of rows to draw
 
   const { height, width } = useWindowDimensions();
@@ -47,7 +49,10 @@ const LaggyShapesTranslation = () => {
   }, [isPlaying]);
 
   // Start/Stop the animation and change the number of circle rows
-  const renderPlayPauseButton = () => <View style={{ position: 'absolute', bottom: 20, left: 20, zIndex: 1, display: 'flex', flexDirection: 'row' }}>
+  const renderActionButtons = () => <View style={{ position: 'absolute', bottom: 20, left: 20, zIndex: 1, display: 'flex', flexDirection: 'row' }}>
+    <Pressable style={ { width: 45, borderRadius: 25, paddingTop: 6, paddingLeft: 7, marginRight: 10, backgroundColor: '#FFF' }} onPress={() => setShapeType((shapeType === 'circle') ? 'rrect' : ((shapeType === 'rrect') ? 'mixed' : 'circle'))}>
+      <MaterialCommunityIcons name={(shapeType === 'circle') ? 'circle' : ((shapeType === 'rrect') ? 'rectangle' : 'format-list-bulleted-type')} size={30} color="#464646" />
+    </Pressable>
    <Pressable style={ { width: 45, borderRadius: 25, backgroundColor: (numberOfCircleRows > 10) ? '#FFCC00' : '#9E9E9E' }} onPress={() => (numberOfCircleRows > 10) && setNumberOfCircleRows(numberOfCircleRows - 10)}>
       <Text style={{ color: '#454545', fontSize: 33, textAlign: 'center' }}>-</Text>
     </Pressable>
@@ -57,8 +62,8 @@ const LaggyShapesTranslation = () => {
     <Pressable style={ { width: 45, borderRadius: 25, backgroundColor: '#FFCC00' }} onPress={() => setNumberOfCircleRows(numberOfCircleRows + 10)}>
       <Text style={{ color: '#454545', fontSize: 33, textAlign: 'center' }}>+</Text>
     </Pressable>
-    <Pressable style={ { backgroundColor: '#FFF', paddingVertical: 10, paddingHorizontal: 20, marginHorizontal: 10, borderRadius: 10 }} onPress={() => setUsePathOptimization(!usePathOptimization)}>
-      <Text style={{ color: '#454545', fontSize: 20 }}>{(usePathOptimization) ? 'Use Shapes' : 'Use Paths'}</Text>
+    <Pressable style={ { paddingVertical: 10, paddingHorizontal: 20, borderRadius: 10, marginHorizontal: 10 }} onPress={() => setUsePathOptimization(!usePathOptimization)}>
+      <Text style={{ color: '#FFF', fontSize: 20 }}>{(usePathOptimization) ? 'Use Shapes' : 'Use Paths'}</Text>
     </Pressable>
   </View>;
   
@@ -66,34 +71,99 @@ const LaggyShapesTranslation = () => {
   //      SKIA RENDERING
   // =======================
 
-  // Render the circles with using <Circle /> shapes
-  const renderCirclesWithShapes = () => Array.from(Array(numberOfCircleRows), (_, rowNumber) => {
-    return Array.from(Array(numberOfCirclesPerRow), (_, lineNumber) => (<Circle
-      key={ `${rowNumber}_${lineNumber}_keyCircle` }
-      cx={ spaceBetweenCirclesRows * rowNumber }
-      cy={ (lineNumber + 1/2) * height / numberOfCirclesPerRow }
-      r={ circlesDiameter }
-      color={ '#1877AD' }
-    />))
+  // Render the shapes with using <Circle />, <RoundedRect /> or <Points /> component
+  const renderShapesWithComponents = () => Array.from(Array(numberOfCircleRows), (_, rowNumber) => {
+    return Array.from(Array(numberOfCirclesPerRow), (_, lineNumber) => {
+      const xPos = spaceBetweenCirclesRows * rowNumber;
+      const yPos = (lineNumber + 1/2) * height / numberOfCirclesPerRow;
+
+      const circleJsx = <Circle
+        key={ `${rowNumber}_${lineNumber}_keyCircle` }
+        cx={ xPos }
+        cy={ yPos }
+        r={ circlesDiameter }
+        color={ '#1877AD' }
+      />;
+
+      const rrectJsx = <RoundedRect
+        key={ `${rowNumber}_${lineNumber}_keyRRect` }
+        x={ xPos - circlesDiameter }
+        y={ yPos - circlesDiameter * 0.75}
+        width={ circlesDiameter * 2 }
+        height={ circlesDiameter * 1.5 }
+        r={circlesDiameter / 4 }
+        color={ '#1877AD' }
+      />;
+
+      // Draw a triangle
+      const triangleJsx = <Points
+        key={ `${rowNumber}_${lineNumber}_keyTriangle` }
+        points={[
+          vec(xPos - circlesDiameter, yPos - circlesDiameter * 0.75),
+          vec(xPos + circlesDiameter, yPos - circlesDiameter * 0.75),
+          vec(xPos, yPos + circlesDiameter * 0.75),
+          vec(xPos - circlesDiameter, yPos - circlesDiameter * 0.75),
+        ]}
+        mode="polygon"
+        style="fill"
+        color={ '#1877AD' }
+      />;
+      
+      switch (shapeType) {
+        case 'circle':
+          return circleJsx;
+        case 'rrect':
+          return rrectJsx;
+        case 'mixed':
+          switch ((lineNumber + rowNumber) % 3) {
+            case 0:
+              return circleJsx 
+            case 1:
+              return rrectJsx;
+            case 2:
+              return triangleJsx;
+          }
+      }
+    })
   });
   
-  // Use Skia.Path to render the circles
-  const circlesPath = useMemo(() => {
+  // Use Skia.Path to render the shapes
+  const shapesPath = useMemo(() => {
     const path = Skia.Path.Make();
     for (let rowNumber = 0; rowNumber < numberOfCircleRows; rowNumber++) {
       for (let lineNumber = 0; lineNumber < numberOfCirclesPerRow; lineNumber++) {
-        const noteXPosition = spaceBetweenCirclesRows * rowNumber;
-        const shapeYPosition = (lineNumber + 1/2) * height / numberOfCirclesPerRow;
+        const xPos = spaceBetweenCirclesRows * rowNumber;
+        const yPos = (lineNumber + 1/2) * height / numberOfCirclesPerRow;
 
-        path.addCircle(noteXPosition, shapeYPosition, circlesDiameter);
+        
+        switch (shapeType) {
+          case 'circle':
+            path.addCircle(xPos, yPos, circlesDiameter);
+            break;
+          case 'rrect':
+            path.addRRect(Skia.RRectXY(Skia.XYWHRect(xPos - circlesDiameter, yPos - circlesDiameter * 0.75, circlesDiameter * 2, circlesDiameter * 1.5), circlesDiameter / 4, circlesDiameter / 4));
+            break;
+          case 'mixed':
+            switch ((lineNumber + rowNumber) % 3) {
+              case 0:
+                path.addCircle(xPos, yPos, circlesDiameter);
+                break;
+              case 1:
+                path.addRRect(Skia.RRectXY(Skia.XYWHRect(xPos - circlesDiameter, yPos - circlesDiameter * 0.75, circlesDiameter * 2, circlesDiameter * 1.5), circlesDiameter / 4, circlesDiameter / 4));
+                break;
+              case 2:
+                path.addPoly([vec(xPos - circlesDiameter, yPos - circlesDiameter * 0.75), vec(xPos + circlesDiameter, yPos - circlesDiameter * 0.75), vec(xPos, yPos + circlesDiameter * 0.75), vec(xPos - circlesDiameter, yPos - circlesDiameter * 0.75)], true);
+                break;
+            }
+        }
       }
     }
 
     return path;
-  }, [numberOfCircleRows]);
+  }, [numberOfCircleRows, shapeType]);
 
-  const renderCirclesWithPaths = () => <Path
-    path={ circlesPath }
+  const renderShapesWithPaths = () => <Path
+    path={ shapesPath }
     color={ '#1877AD' }
     style="fill"
     strokeJoin="round"
@@ -101,12 +171,12 @@ const LaggyShapesTranslation = () => {
 
   // Main Canvas
   return <View style={{ flex: 1, backgroundColor: '#464646'}}>
-    { renderPlayPauseButton()}
+    { renderActionButtons()}
 
     <View style={{ flex: 1, overflow: 'hidden', width: width }}>
       <Canvas style={{ flex: 1 }}>
         <Group transform={baseXTranslateWithTimelineFromAnimation}>
-          {(usePathOptimization) ? renderCirclesWithPaths() : renderCirclesWithShapes() }
+          {(usePathOptimization) ? renderShapesWithPaths() : renderShapesWithComponents() }
         </Group>
       </Canvas>
     </View>
